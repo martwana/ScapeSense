@@ -1,0 +1,25 @@
+# Copy to terraform.tfvars (gitignored — contains your billing ID).
+
+firebase_project_id     = "scapesense-prod-XXXX"   # must be globally unique
+gcp_billing_account_id  = "XXXXXX-XXXXXX-XXXXXX"   # gcloud billing accounts list
+firmware_bucket_name    = "scapesense-firmware-releases-XXXX"  # globally unique
+alert_emails            = ["you@example.com"]
+
+# Stage flags — leave disabled for the first apply.
+# 1st apply: zone + all infra -> delegate registrar NS (output).
+# 2nd apply: custom_domain_enabled = true   (after delegation propagates)
+# 3rd apply: copy `terraform output firebase_required_dns_updates` entries
+#            into app_dns_records below.
+custom_domain_enabled   = false
+app_dns_records         = []
+# app_dns_records       = [
+#   { name = "app.scapesense.io", type = "TXT", rdata = "\"firebase=...\"" },
+#   { name = "app.scapesense.io", type = "A",   rdata = "199.36.158.100" },
+# ]
+
+# aws_region              = "eu-west-2"
+# firebase_region         = "europe-west2"
+# rtdb_region             = "europe-west1"   # europe-west2 not available for RTDB
+# hosting_site_id         = "scapesense-app"
+# aws_monthly_budget_usd  = 10
+# gcp_monthly_budget_gbp  = 5

@@ -23,6 +23,8 @@ firebase-export-metadata.json
 
 # Terraform
 infrastructure/**/.terraform/
+infrastructure/**/backend.hcl
+infrastructure/**/build/
 *.tfstate
 *.tfstate.*
 crash.log
