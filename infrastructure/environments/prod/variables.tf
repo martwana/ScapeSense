@@ -1,13 +1,20 @@
 variable "aws_region" {
-  description = "AWS region for IoT/Lambda/S3/Route53 resources."
+  description = "AWS region for IoT/Lambda/S3 resources."
   type        = string
   default     = "eu-west-2"
 }
 
 variable "domain_name" {
-  description = "Public apex domain managed in the Route 53 zone."
+  description = "Public apex domain managed in the existing Cloudflare zone."
   type        = string
   default     = "scapesense.io"
+}
+
+variable "cloudflare_api_token" {
+  description = "Scoped Cloudflare API token (Edit zone DNS on scapesense.io). Supply via terraform.tfvars or CLOUDFLARE_API_TOKEN env var."
+  type        = string
+  sensitive   = true
+  default     = null
 }
 
 variable "firebase_project_id" {
@@ -59,7 +66,7 @@ variable "gcp_monthly_budget_gbp" {
 }
 
 variable "custom_domain_enabled" {
-  description = "Stage B: create the Firebase custom domain. Only after registrar delegation to Route 53."
+  description = "Stage B: create the Firebase custom domain. Cloudflare DNS is already authoritative, so this can be enabled immediately."
   type        = bool
   default     = false
 }

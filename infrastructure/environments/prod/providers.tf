@@ -26,3 +26,11 @@ provider "google-beta" {
   billing_project       = var.firebase_project_id
   user_project_override = true
 }
+
+# Cloudflare manages DNS for scapesense.io (domain is registered there).
+# Token: scoped "Edit zone DNS" API token restricted to the scapesense.io
+# zone — supplied via var.cloudflare_api_token (terraform.tfvars, gitignored)
+# or the CLOUDFLARE_API_TOKEN environment variable.
+provider "cloudflare" {
+  api_token = var.cloudflare_api_token
+}

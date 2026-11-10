@@ -1,10 +1,10 @@
-output "route53_zone_id" {
-  value = module.route53.zone_id
+output "cloudflare_zone_id" {
+  value = module.cloudflare.zone_id
 }
 
-output "route53_name_servers" {
-  description = "MANUAL STEP: set these four nameservers at the scapesense.io registrar, then re-apply with custom_domain_enabled=true."
-  value       = module.route53.name_servers
+output "cloudflare_name_servers" {
+  description = "Cloudflare-assigned nameservers — already authoritative (domain registered at Cloudflare), no registrar step."
+  value       = module.cloudflare.name_servers
 }
 
 output "firebase_project_id" {

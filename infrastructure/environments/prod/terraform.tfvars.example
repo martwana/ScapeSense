@@ -1,16 +1,17 @@
-# Copy to terraform.tfvars (gitignored — contains your billing ID).
+# Copy to terraform.tfvars (gitignored — contains your billing ID + DNS token).
 
 firebase_project_id     = "scapesense-prod-XXXX"   # must be globally unique
 gcp_billing_account_id  = "XXXXXX-XXXXXX-XXXXXX"   # gcloud billing accounts list
 firmware_bucket_name    = "scapesense-firmware-releases-XXXX"  # globally unique
 alert_emails            = ["you@example.com"]
+cloudflare_api_token    = "..."                    # scoped Edit-zone-DNS token for scapesense.io
 
-# Stage flags — leave disabled for the first apply.
-# 1st apply: zone + all infra -> delegate registrar NS (output).
-# 2nd apply: custom_domain_enabled = true   (after delegation propagates)
-# 3rd apply: copy `terraform output firebase_required_dns_updates` entries
-#            into app_dns_records below.
-custom_domain_enabled   = false
+# DNS is managed at Cloudflare where the domain is registered — the zone is
+# already authoritative, so the custom domain can be enabled immediately.
+# 1st apply: all infra + Firebase custom domain registration ->
+#            read `terraform output firebase_required_dns_updates`.
+# 2nd apply: copy those entries into app_dns_records below.
+custom_domain_enabled   = true
 app_dns_records         = []
 # app_dns_records       = [
 #   { name = "app.scapesense.io", type = "TXT", rdata = "\"firebase=...\"" },

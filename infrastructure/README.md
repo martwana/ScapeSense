@@ -1,15 +1,17 @@
 # ScapeSense Infrastructure
 
-Terraform for both clouds: **AWS** (IoT Core, Route 53, Lambda, S3, Jobs,
-budgets) and **GCP/Firebase** (project, Auth, Firestore, RTDB, Hosting, IAM,
-budget). One environment (`prod`) today; add `environments/dev` later by
-reusing the same modules with a separate state key.
+Terraform for both clouds: **AWS** (IoT Core, Lambda, S3, Jobs, budgets),
+**GCP/Firebase** (project, Auth, Firestore, RTDB, Hosting, IAM, budget) and
+**Cloudflare** (DNS for scapesense.io — the domain is registered at
+Cloudflare, so the zone already exists and is authoritative). One environment
+(`prod`) today; add `environments/dev` later by reusing the same modules
+with a separate state key.
 
 ```text
 infrastructure/
 ├── bootstrap/                 # creates the remote state bucket (run once, local state)
 ├── modules/
-│   ├── route53/               # scapesense.io public hosted zone
+│   ├── cloudflare/            # existing scapesense.io zone lookup (records live in env)
 │   ├── firebase/              # GCP project + Firebase attachment + APIs + web app
 │   ├── firestore/             # (default) DB, expiresAt TTL, deny-all rules
 │   ├── realtime-database/     # RTDB instance for live metrics
@@ -30,8 +32,9 @@ infrastructure/
 | Tool | Install |
 |---|---|
 | Terraform >= 1.10 | `tfenv install` (reads `.terraform-version`) or `brew install terraform` |
-| AWS credentials | `aws configure` or `aws sso login` — needs permission to create IAM/IoT/S3/Route53/Budgets/Lambda/SecretsManager resources |
-| GCP credentials | `gcloud auth application-default login` — needs `resourcemanager.projects.create` + a billing account ID (`gcloud billing accounts list`) |
+| AWS credentials | `aws configure` or `aws sso login` — needs permission to create IAM/IoT/S3/Budgets/Lambda/SecretsManager resources |
+| GCP credentials | `gcloud auth application-default login` + `gcloud auth application-default set-quota-project <project>` — needs a billing account ID (`gcloud billing accounts list`) |
+| Cloudflare token | Scoped **Edit zone DNS** API token restricted to the `scapesense.io` zone (dash.cloudflare.com → My Profile → API Tokens). Put `cloudflare_api_token = "..."` in `terraform.tfvars` or export `CLOUDFLARE_API_TOKEN` |
 
 No secrets live in this repo: `terraform.tfvars`, `backend.hcl`, `*.tfstate` and
 credential files are gitignored.
@@ -49,27 +52,18 @@ cp backend.hcl.example backend.hcl  # fill in the bucket name
 terraform init -backend-config=backend.hcl
 ```
 
-### Step A — infrastructure + hosted zone
+### Step A — infrastructure
 
 ```bash
-cp terraform.tfvars.example terraform.tfvars   # fill in IDs/emails
-terraform apply                                # custom_domain_enabled=false
-
-terraform output route53_name_servers          # 4 NS records
+cp terraform.tfvars.example terraform.tfvars   # fill in IDs/emails/token
+terraform apply                                # custom_domain_enabled=true
+terraform output firebase_required_dns_updates # exact records Firebase wants
 ```
 
-**Manual step:** set those four nameservers at the `scapesense.io` registrar.
-Wait for delegation (`dig NS scapesense.io` shows the Route 53 servers).
-Terraform never touches the registrar.
+No registrar delegation step — the `scapesense.io` zone at Cloudflare is
+already authoritative.
 
-### Step B — Firebase custom domain
-
-```bash
-terraform apply -var="custom_domain_enabled=true"
-terraform output firebase_required_dns_updates   # exact records Firebase wants
-```
-
-### Step C — create the required records in Route 53
+### Step B — create the required records in Cloudflare
 
 Copy each record from `terraform output firebase_required_dns_updates` into
 `app_dns_records` in `terraform.tfvars` and re-apply:
@@ -81,13 +75,15 @@ app_dns_records = [
 ]
 ```
 
-(The values come from Firebase — the Route 53 records can't be planned until
-Firebase reports them, so this is deliberately a copy/paste step.)
+(The values come from Firebase — the Cloudflare records can't be planned
+until Firebase reports them, so this is deliberately a copy/paste step.
+Records are created DNS-only/`proxied = false` so Firebase verification and
+certificate issuance work.)
 
 Firebase then finishes cert provisioning for `app.scapesense.io` (minutes).
 Firebase Hosting manages the TLS certificate — no ACM.
 
-### Step D — deploy Firebase application bits
+### Step C — deploy Firebase application bits
 
 Firebase CLI handles deployment actions Terraform doesn't own:
 
@@ -106,7 +102,7 @@ firebase deploy --only functions,hosting,database
   → Web Push certificates) and put only the *public* key in
   `Firebase/web/public/push-config.json`.
 
-### Step E — dev device certificate (Phase 2)
+### Step D — dev device certificate (Phase 2)
 
 Manufactured devices will mint certificates through Fleet Provisioning. For the
 first connectivity proof, create one dev Thing + cert by hand:

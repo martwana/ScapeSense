@@ -1,6 +1,6 @@
-# Firebase Hosting site for the ScapeSense PWA. The custom domain resource is
-# created after registrar delegation; its `required_dns_updates` output tells
-# us exactly which Route 53 records Firebase wants — nothing is hardcoded.
+# Firebase Hosting site for the ScapeSense PWA. Its `required_dns_updates`
+# output tells us exactly which Cloudflare DNS records Firebase wants —
+# nothing is hardcoded.
 
 resource "google_firebase_hosting_site" "portal" {
   provider = google-beta

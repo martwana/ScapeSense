@@ -12,10 +12,10 @@ locals {
   ]
 }
 
-# ---------- DNS (AWS) ----------
+# ---------- DNS (Cloudflare) ----------
 
-module "route53" {
-  source      = "../../modules/route53"
+module "cloudflare" {
+  source      = "../../modules/cloudflare"
   domain_name = var.domain_name
 }
 
@@ -103,7 +103,7 @@ module "monitoring" {
   gcp_monthly_budget_gbp = var.gcp_monthly_budget_gbp
 }
 
-# ---------- Custom-domain DNS records (stage C) ----------
+# ---------- Custom-domain DNS records (stage B) ----------
 #
 # After the custom domain exists, Firebase reports the exact records it needs
 # (site-verification TXT + hosting A/AAAA or CNAME) via
@@ -111,13 +111,27 @@ module "monitoring" {
 # Resource attributes can't feed for_each at plan time, so copy those actual
 # values into `app_dns_records` in terraform.tfvars and re-apply — the records
 # still come from Firebase, nothing is hardcoded here.
+#
+# proxied = false is required: Firebase must see the real records to verify
+# the domain and issue the certificate (DNS-only, grey cloud).
 
-resource "aws_route53_record" "firebase_custom_domain" {
-  for_each = { for r in var.app_dns_records : "${r.name}|${r.type}|${r.rdata}" => r }
+locals {
+  app_dns_records = {
+    for r in var.app_dns_records : "${r.name}|${r.type}|${r.rdata}" => {
+      name  = endswith(trimsuffix(r.name, "."), var.domain_name) ? trimsuffix(r.name, ".") : "${trimsuffix(r.name, ".")}.${var.domain_name}"
+      type  = r.type
+      rdata = r.rdata
+    }
+  }
+}
 
-  zone_id = module.route53.zone_id
-  name    = trimsuffix(each.value.name, ".")
+resource "cloudflare_dns_record" "firebase_custom_domain" {
+  for_each = local.app_dns_records
+
+  zone_id = module.cloudflare.zone_id
+  name    = each.value.name
   type    = each.value.type
-  ttl     = 300
-  records = [each.value.rdata]
+  content = each.value.rdata
+  ttl     = 1 # auto
+  proxied = false
 }
