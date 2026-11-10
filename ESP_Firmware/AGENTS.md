@@ -129,7 +129,15 @@ NVS cannot override the fixed ESP32-S3 pin mapping.
 - Telemetry publishes every `backgroundIntervalMs` (default 5 min), or
   `liveIntervalMs` (default 2 s) while a `live` command window is active
   (capped at 1 h). Flow start/stop events publish immediately at QoS 1 and
-  expire after 24 h. A retained `online`/`offline` LWT marks presence.
+  expire after 24 h. Presence is a QoS 1 `online` event plus a non-retained
+  `offline` LWT.
+- AWS IoT constraints discovered the hard way: retained messages are NOT
+  supported at all — `WillRetain=true` makes AWS drop the CONNECT before
+  CONNACK, and a retained PUBLISH fails `Publish-In` and closes the session.
+  AWS IoT v2 logging only writes to the fixed `AWSIotLogsV2` group (the role
+  needs `logs:CreateLogGroup` on it or nothing ever appears).
+- The MQTT transport is pinned to TLS 1.2 and IPv4 (`esp_transport_ssl_*`) for
+  deterministic behaviour on dual-stack endpoints.
 - Device credentials for the dev proof live in LittleFS: drop the dev
   certificate + private key into `data/iot/device.crt` and
   `data/iot/device.key` before `pio run -t buildfs` + `uploadfs`. `data/` is
