@@ -1,0 +1,14 @@
+{
+  "functions": [{ "source": "functions", "codebase": "scapesense-notifications", "ignore": ["test", "node_modules", ".git"] }],
+  "firestore": { "rules": "firestore.rules", "indexes": "firestore.indexes.json" },
+  "hosting": {
+    "public": "web/dist",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [{ "source": "/api/**", "function": { "functionId": "api", "region": "europe-west2" } }],
+    "headers": [
+      { "source": "**", "headers": [{ "key": "X-Content-Type-Options", "value": "nosniff" }, { "key": "Referrer-Policy", "value": "no-referrer" }] },
+      { "source": "/firebase-messaging-sw.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }
+    ]
+  },
+  "emulators": { "auth": { "port": 9099 }, "firestore": { "port": 8080 }, "functions": { "port": 5001 }, "hosting": { "port": 5000 }, "singleProjectMode": true }
+}

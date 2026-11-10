@@ -1,0 +1,88 @@
+#include "ConfigManager.h"
+#include <cassert>
+#include <cmath>
+#include <cstdio>
+
+int main() {
+  Preferences::values.clear();
+  ConfigManager config;
+  assert(config.begin());
+  assert(config.temperatureSettings().targetC == 24.0f);
+  assert(config.temperatureSettings().toleranceC == 2.0f);
+  assert(config.saveTemperatureSettings({25.0f, 1.5f}));
+  assert(config.bubbleTargetBps() == 0);
+  assert(config.saveBubbleTarget(1.5f));
+  assert(!config.saveBubbleTarget(-1));
+  assert(!config.saveBubbleTarget(NAN));
+  ConfigManager restarted;
+  assert(restarted.begin());
+  assert(restarted.bubbleTargetBps() == 1.5f);
+  RemoteNotificationConfig remote{};
+  remote.enabled = true;
+  std::strcpy(remote.projectId, "tank-project");
+  std::memset(remote.deviceId, 'a', 32);
+  std::strcpy(remote.deviceKey, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopq");
+  assert(config.saveNotificationConfig(remote));
+  RemoteNotificationConfig invalidRemote = remote;
+  invalidRemote.projectId[0] = '!';
+  assert(!config.saveNotificationConfig(invalidRemote));
+  ConfigManager persisted;
+  assert(persisted.begin());
+  assert(persisted.notificationConfig().enabled);
+  assert(std::strcmp(persisted.notificationConfig().projectId, "tank-project") == 0);
+  assert(std::strcmp(persisted.notificationConfig().deviceKey, remote.deviceKey) == 0);
+  assert(restarted.saveBubbleTarget(0));
+  assert(restarted.temperatureSettings().targetC == 25.0f);
+  assert(restarted.temperatureSettings().toleranceC == 1.5f);
+  assert(!config.saveTemperatureSettings({25.0f, 0.0f}));
+  assert(!config.saveTemperatureSettings({NAN, 2.0f}));
+  assert(config.temperatureSettings().toleranceC == 1.5f);
+  Preferences::failWrites = true;
+  assert(!config.saveBubbleTarget(2));
+  assert(config.bubbleTargetBps() == 1.5f);
+  assert(!config.saveTemperatureSettings({26.0f, 1.0f}));
+  assert(config.temperatureSettings().targetC == 25.0f);
+  assert(!config.eraseDeviceSettings());
+  assert(!Preferences::values["temp_limits"].empty());
+  Preferences::failWrites = false;
+  const TemperatureSettings corrupt{1000.0f, 0.0f};
+  Preferences storage;
+  storage.putBytes("temp_limits", &corrupt, sizeof(corrupt));
+  ConfigManager invalid;
+  assert(invalid.begin());
+  assert(invalid.temperatureSettings().targetC == 24.0f);
+  storage.putBytes("temp_limits", &corrupt, 1);
+  invalid.loadDefaults();
+  assert(invalid.temperatureSettings().toleranceC == 2.0f);
+  LegacyDailyStatsState legacy{};
+  legacy.version = 1;
+  legacy.currentDayKey = 20261012;
+  legacy.currentCount = 12;
+  legacy.startEpoch = 100;
+  legacy.stopEpoch = 200;
+  legacy.historyCount = 1;
+  legacy.history[0] = {20261011, 24, 50, 150};
+  storage.putBytes("daily_stats", &legacy, sizeof(legacy));
+  ConfigManager migrated;
+  assert(migrated.begin());
+  DailyStatsState history{};
+  assert(migrated.loadDailyStats(history));
+  assert(history.version == DailyStatsState::kVersion);
+  assert(history.activeSeconds == 100);
+  assert(history.history[0].activeSeconds == 100);
+  assert(Preferences::values["daily_stats"].size() == sizeof(DailyStatsState));
+  assert(config.saveDailyStats(history));
+  assert(config.eraseDeviceSettings());
+  assert(Preferences::values.empty());
+  ConfigManager erased;
+  assert(erased.begin());
+  assert(erased.bubbleTargetBps() == 0);
+  assert(erased.temperatureSettings().targetC == 24.0f);
+  assert(!erased.loadDailyStats(history));
+  Preferences::available = false;
+  ConfigManager unavailable;
+  assert(!unavailable.begin());
+  assert(!unavailable.saveTemperatureSettings({25.0f, 2.0f}));
+  assert(!unavailable.eraseDeviceSettings());
+  std::puts("ConfigManager persistence, validation, failure and erase tests passed");
+}

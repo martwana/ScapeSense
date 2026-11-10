@@ -1,0 +1,27 @@
+CompileFlags:
+  Add:
+    - -I/Users/martinmcinnes/Documents/PlatformIO/Projects/BubbleCounter/include
+    - --target=riscv32-unknown-elf
+    - -nostdinc++
+    - -isystem
+    - /Users/martinmcinnes/.platformio/packages/toolchain-xtensa-esp-elf/xtensa-esp-elf/include/c++/14.2.0
+    - -isystem
+    - /Users/martinmcinnes/.platformio/packages/toolchain-xtensa-esp-elf/xtensa-esp-elf/include/c++/14.2.0/xtensa-esp-elf/esp32s3
+    - -isystem
+    - /Users/martinmcinnes/.platformio/packages/toolchain-xtensa-esp-elf/xtensa-esp-elf/include/c++/14.2.0/backward
+    - -isystem
+    - /Users/martinmcinnes/.platformio/packages/toolchain-xtensa-esp-elf/lib/gcc/xtensa-esp-elf/14.2.0/include
+    - -isystem
+    - /Users/martinmcinnes/.platformio/packages/toolchain-xtensa-esp-elf/xtensa-esp-elf/include
+    - -std=c++17
+    - -DARDUINO_USB_CDC_ON_BOOT=1
+    - -DARDUINO_USB_MODE=1
+    - -DNETWIZARD_USE_ASYNC_WEBSERVER=1
+    - -D__XTENSA__
+  Remove:
+    - -mlongcalls
+    - -freorder-blocks
+    - -fstrict-volatile-bitfields
+    - -fno-jump-tables
+    - -fno-tree-switch-conversion
+    - -mdisable-hardware-atomics

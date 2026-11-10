@@ -1,0 +1,20 @@
+{
+  "name": "scapesense-notification-app",
+  "private": true,
+  "type": "module",
+  "engines": { "node": "22" },
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --test src/*.test.js",
+    "test:coverage": "node --test --experimental-test-coverage src/*.test.js"
+  },
+  "dependencies": {
+    "@firebase/app": "0.16.2",
+    "@firebase/auth": "1.13.6",
+    "@firebase/messaging": "0.13.3"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "linkedom": "0.18.15"
+  }
+}

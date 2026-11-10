@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#12241f">
+  <meta name="description" content="ScapeSense aquarium flow notifications">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/icon.png">
+  <link rel="stylesheet" href="/app.css">
+  <title>ScapeSense Notifications</title>
+</head>
+<body>
+  <main>
+    <header><span class="logo" aria-hidden="true"></span><div><h1>ScapeSense</h1><p>Stay connected to the life beneath the surface.</p></div></header>
+    <p id="notice" role="status" aria-live="polite">Connecting…</p>
+    <section id="signed-out">
+      <h2>Notifications, wherever you are</h2>
+      <p>Sign in to pair your aquarium and receive confirmed CO₂ start and stop notifications.</p>
+      <form id="sign-in">
+        <label>Email<input id="email" type="email" autocomplete="username" required></label>
+        <label>Password<input id="password" type="password" autocomplete="current-password" minlength="12" required></label>
+        <div class="actions"><button>Sign in</button><button id="create-account" type="button" class="secondary">Create account</button></div>
+      </form>
+    </section>
+    <section id="verify" hidden>
+      <h2>Verify your email</h2><p>Open the verification email before pairing devices.</p>
+      <div class="actions"><button id="refresh-verification">I’ve verified my email</button><button id="resend-verification" class="secondary">Send verification email</button></div>
+    </section>
+    <div id="signed-in" hidden>
+      <section>
+        <h2>Your aquariums</h2>
+        <div id="devices"></div>
+        <form id="create-device"><label>New device name<input id="device-name" maxlength="64" required placeholder="Living-room aquarium"></label><button>Pair a new device</button></form>
+        <div id="pairing" hidden>
+          <h3>One-time pairing details</h3>
+          <p>Copy these into the local ScapeSense dashboard’s Push notifications panel. The device key is shown only once. Pair on a trusted local network: the local dashboard currently uses HTTP.</p>
+          <label>Pairing details<textarea id="pairing-details" readonly rows="6" autocomplete="off" spellcheck="false"></textarea></label>
+          <button id="hide-pairing" class="secondary">Hide pairing key</button>
+        </div>
+      </section>
+      <section>
+        <h2>Push preferences</h2>
+        <p>Select your aquariums above. On iPhone or iPad, add this app to your Home Screen and open it from there before enabling notifications.</p>
+        <label class="check"><input id="started" type="checkbox" checked> CO₂ starts</label>
+        <label class="check"><input id="stopped" type="checkbox" checked> CO₂ stops</label>
+        <p>Start is confirmed after 12 bubbles within a minute; stop follows five minutes without qualifying flow. Push delivery depends on connectivity and your phone’s notification settings.</p>
+        <div class="actions"><button id="enable-push">Enable / update notifications</button><button id="disable-push" class="secondary">Disable notifications</button></div>
+      </section>
+      <section id="history" hidden><h2>Recent flow events</h2><ul id="event-list"></ul></section>
+    </div>
+    <button id="sign-out" hidden class="secondary">Disable notifications &amp; sign out</button>
+    <footer>ScapeSense · Thoughtful aquarium monitoring.</footer>
+  </main>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

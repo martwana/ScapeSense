@@ -1,0 +1,47 @@
+# macOS
+.DS_Store
+*.bak
+
+# Dependencies
+node_modules/
+
+# PlatformIO / firmware build output
+.pio/
+compile_commands.json
+.cache/
+
+# Generated dashboard build output (LittleFS source is rebuilt by `npm run build`)
+ESP_Firmware/data/
+
+# Firebase build output / local state
+Firebase/web/dist/
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+firebase-export-metadata.json
+
+# Terraform
+infrastructure/**/.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*.tfvars
+!*.tfvars.example
+.terraformrc
+terraform.rc
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Secrets — never commit credentials, keys or service accounts
+.env
+.env.*
+*.pem
+*.key
+*.p12
+serviceAccount*.json
+*-service-account*.json
+secrets*.json
