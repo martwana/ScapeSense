@@ -79,8 +79,9 @@ resource "aws_iot_policy" "device" {
 }
 
 # IoT → CloudWatch logging (connection/auth errors, rule failures).
+# AWS IoT v2 logging only writes to the fixed AWSIotLogsV2 group.
 resource "aws_cloudwatch_log_group" "iot" {
-  name              = "/aws/iot/scapesense"
+  name              = "AWSIotLogsV2"
   retention_in_days = var.log_retention_days
 }
 
@@ -106,12 +107,13 @@ resource "aws_iam_role_policy" "iot_logging" {
     Statement = [{
       Effect = "Allow"
       Action = [
+        "logs:CreateLogGroup",
         "logs:CreateLogStream",
         "logs:DescribeLogStreams",
         "logs:PutLogEvents",
         "logs:PutRetentionPolicy",
       ]
-      Resource = "${aws_cloudwatch_log_group.iot.arn}:*"
+      Resource = ["${aws_cloudwatch_log_group.iot.arn}", "${aws_cloudwatch_log_group.iot.arn}:*"]
     }]
   })
 }

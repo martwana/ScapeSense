@@ -4,6 +4,8 @@
 #include <WiFi.h>
 #include <esp_crt_bundle.h>
 #include <esp_system.h>
+#include <esp_tls.h>
+#include <esp_transport_ssl.h>
 #include <time.h>
 
 namespace {
@@ -50,7 +52,9 @@ IotStatus IotClient::status() const {
   const bool live = liveUntilMs_.load() > millis();
   return {enabled_.load(), configured_.load(), connected_.load(), live,
           published_.load(), dropped_.load(), queued_.load(),
-          commandsHandled_.load(), lastError_.load()};
+          commandsHandled_.load(), lastError_.load(), stackErr_.load(),
+          connRc_.load(), certFlags_.load(), freeHeap_.load(),
+          minFreeHeap_.load()};
 }
 
 void IotClient::taskEntry(void *self) { static_cast<IotClient *>(self)->run(); }
@@ -66,7 +70,9 @@ void IotClient::mqttEventHandler(void *ctx, esp_event_base_t, int32_t eventId,
     self->lastError_ = 0;
     const std::string eventsTopic = iotDeviceTopic(self->deviceId_, "events");
     const std::string online = std::string("{\"deviceId\":\"") + self->deviceId_ + "\",\"kind\":\"online\"}";
-    esp_mqtt_client_publish(event->client, eventsTopic.c_str(), online.c_str(), 0, 1, 1);
+    // AWS IoT rejects retained publishes, so presence rides on normal QoS1
+    // events plus telemetry timestamps instead.
+    esp_mqtt_client_publish(event->client, eventsTopic.c_str(), online.c_str(), 0, 1, 0);
     esp_mqtt_client_subscribe_single(
         event->client, iotDeviceTopic(self->deviceId_, "commands").c_str(), 1);
     break;
@@ -76,16 +82,24 @@ void IotClient::mqttEventHandler(void *ctx, esp_event_base_t, int32_t eventId,
     break;
   case MQTT_EVENT_DATA: {
     const std::string topic(event->topic, event->topic_len);
-    if (topic.size() > 8 && topic.compare(topic.size() - 8, 8, "/commands") == 0) {
+    if (topic.size() >= 9 && topic.compare(topic.size() - 9, 9, "/commands") == 0) {
       self->handleCommand(event->data, event->data_len);
     }
     break;
   }
   case MQTT_EVENT_ERROR:
     if (event->error_handle) {
-      self->lastError_ = event->error_handle->esp_tls_last_esp_err
-                             ? event->error_handle->esp_tls_last_esp_err
-                             : event->error_handle->connect_return_code;
+      // Prefer connect_return_code when present — an MQTT-level refusal
+      // (e.g. policy deny) is more specific than the transport FIN that
+      // follows it and lands in esp_tls_last_esp_err.
+      self->connRc_ = event->error_handle->connect_return_code;
+      self->stackErr_ = event->error_handle->esp_tls_stack_err;
+      self->certFlags_ = event->error_handle->esp_tls_cert_verify_flags;
+      self->freeHeap_ = ESP.getFreeHeap();
+      self->minFreeHeap_ = ESP.getMinFreeHeap();
+      self->lastError_ = event->error_handle->connect_return_code
+                             ? event->error_handle->connect_return_code
+                             : event->error_handle->esp_tls_last_esp_err;
     }
     break;
   default:
@@ -129,16 +143,30 @@ esp_mqtt_client_handle_t IotClient::openClient(const IotConfig &config) {
   mqttConfig.buffer.size = 1024;
   mqttConfig.buffer.out_size = 1024;
 
-  const std::string eventsTopic = iotDeviceTopic(config.deviceId, "events");
+  // Both must outlive openClient() — esp_mqtt_client stores the pointers.
+  static std::string lwtTopic;
   static std::string lwtMessage;
+  lwtTopic = iotDeviceTopic(config.deviceId, "events");
   lwtMessage = std::string("{\"deviceId\":\"") + config.deviceId + "\",\"kind\":\"offline\"}";
-  mqttConfig.session.last_will.topic = eventsTopic.c_str();
+  mqttConfig.session.last_will.topic = lwtTopic.c_str();
   mqttConfig.session.last_will.msg = lwtMessage.c_str();
   mqttConfig.session.last_will.qos = 1;
-  mqttConfig.session.last_will.retain = true;
+  // AWS IoT silently drops CONNECT packets with WillRetain set — retained
+  // messages (Will or publish) aren't supported, so presence is conveyed by
+  // the QoS1 "online" event plus telemetry timestamps instead.
+  mqttConfig.session.last_will.retain = false;
 
   esp_mqtt_client_handle_t client = esp_mqtt_client_init(&mqttConfig);
   if (!client) return nullptr;
+  // AWS negotiates TLS 1.3 with capable clients, but mbedTLS's 1.3 mutual-auth
+  // path on ESP32 has proven unreliable (server FIN mid-handshake). TLS 1.2 is
+  // also what AWS IoT's documented cipher suites target.
+  // IPv4 is pinned so connection behaviour is deterministic on dual-stack
+  // endpoints regardless of lwIP's address-ordering quirks.
+  if (esp_transport_handle_t tls = esp_mqtt_client_get_transport(client, "ssl")) {
+    esp_transport_ssl_set_tls_version(tls, ESP_TLS_VER_TLS_1_2);
+    esp_transport_ssl_set_addr_family(tls, ESP_TLS_AF_INET);
+  }
   if (esp_mqtt_client_register_event(client, MQTT_EVENT_ANY, mqttEventHandler, this) != ESP_OK) {
     esp_mqtt_client_destroy(client);
     return nullptr;

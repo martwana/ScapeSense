@@ -57,5 +57,10 @@ private:
   std::atomic<uint32_t> queued_{0};
   std::atomic<uint32_t> commandsHandled_{0};
   std::atomic<int> lastError_{0};
+  std::atomic<int32_t> stackErr_{0};
+  std::atomic<int32_t> connRc_{-1};
+  std::atomic<uint32_t> certFlags_{0};
+  std::atomic<uint32_t> freeHeap_{0};
+  std::atomic<uint32_t> minFreeHeap_{0};
   std::atomic<uint32_t> liveUntilMs_{0};
 };

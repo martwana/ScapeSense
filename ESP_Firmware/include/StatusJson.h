@@ -48,7 +48,7 @@ inline std::string buildStatusJson(const BubbleMetrics &metrics,
       device.loadCell.ready && device.loadCell.calibrated &&
       isValidCylinderConfiguration(device.emptyCylinderWeightG,
                                    device.co2CapacityG);
-  char json[1792];
+  char json[1920];
   snprintf(json, sizeof(json),
            "{\"total\":%lu,\"bps\":%.2f,\"bpm\":%.1f,\"baseline\":%u,"
            "\"raw\":%u,\"reliable\":%s,\"status\":\"%s\","
@@ -66,7 +66,9 @@ inline std::string buildStatusJson(const BubbleMetrics &metrics,
            "\"notificationsLastHttp\":%d,\"notificationsRunning\":%s,\"notificationsBlocked\":%s,"
            "\"iotEnabled\":%s,\"iotConfigured\":%s,\"iotDeviceId\":\"%s\","
            "\"iotConnected\":%s,\"iotLive\":%s,\"iotPublished\":%lu,"
-           "\"iotDropped\":%lu,\"iotQueued\":%lu,\"iotCommands\":%lu,\"iotLastError\":%d}",
+           "\"iotDropped\":%lu,\"iotQueued\":%lu,\"iotCommands\":%lu,\"iotLastError\":%d,"
+           "\"iotStackErr\":%ld,\"iotConnRc\":%ld,\"iotCertFlags\":%lu,"
+           "\"iotFreeHeap\":%lu,\"iotMinFreeHeap\":%lu}",
            static_cast<unsigned long>(metrics.totalBubbles),
            metrics.bubblesPerSecond, metrics.bubblesPerMinute, metrics.baseline,
            metrics.lastRaw, metrics.rateReliable ? "true" : "false",
@@ -100,6 +102,11 @@ inline std::string buildStatusJson(const BubbleMetrics &metrics,
            static_cast<unsigned long>(device.iot.dropped),
            static_cast<unsigned long>(device.iot.queued),
            static_cast<unsigned long>(device.iot.commandsHandled),
-           device.iot.lastError);
+           device.iot.lastError,
+           static_cast<long>(device.iot.stackErr),
+           static_cast<long>(device.iot.connRc),
+           static_cast<unsigned long>(device.iot.certFlags),
+           static_cast<unsigned long>(device.iot.freeHeap),
+           static_cast<unsigned long>(device.iot.minFreeHeap));
   return json;
 }

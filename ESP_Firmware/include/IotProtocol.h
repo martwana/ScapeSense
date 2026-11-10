@@ -203,4 +203,9 @@ struct IotStatus {
   uint32_t queued = 0;
   uint32_t commandsHandled = 0;
   int lastError = 0;
+  int32_t stackErr = 0;      // esp_tls_stack_err — raw mbedtls -0xXXXX code
+  int32_t connRc = -1;       // MQTT connect_return_code (-1 = none seen)
+  uint32_t certFlags = 0;    // esp_tls_cert_verify_flags
+  uint32_t freeHeap = 0;     // ESP.getFreeHeap() at last error
+  uint32_t minFreeHeap = 0;  // ESP.getMinFreeHeap() watermark
 };
