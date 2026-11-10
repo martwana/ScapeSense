@@ -3,6 +3,7 @@
 #include "BubbleCounter.h"
 #include "LoadCellReading.h"
 #include "TemperatureReading.h"
+#include "IotProtocol.h"
 #include "MonitoringSettings.h"
 #include "RemoteNotifications.h"
 #include <cstdint>
@@ -22,6 +23,8 @@ struct DeviceInfo {
   float bubbleTargetBps = 0;
   RemoteNotificationConfig notifications{};
   NotificationDeliveryState notificationDelivery{};
+  IotConfig iotConfig{};
+  IotStatus iot{};
 };
 
 inline const char *statusName(BubbleStatus status) {
@@ -45,7 +48,7 @@ inline std::string buildStatusJson(const BubbleMetrics &metrics,
       device.loadCell.ready && device.loadCell.calibrated &&
       isValidCylinderConfiguration(device.emptyCylinderWeightG,
                                    device.co2CapacityG);
-  char json[1536];
+  char json[1792];
   snprintf(json, sizeof(json),
            "{\"total\":%lu,\"bps\":%.2f,\"bpm\":%.1f,\"baseline\":%u,"
            "\"raw\":%u,\"reliable\":%s,\"status\":\"%s\","
@@ -60,7 +63,10 @@ inline std::string buildStatusJson(const BubbleMetrics &metrics,
            "\"firmware\":\"%s\",\"notificationsEnabled\":%s,\"notificationsConfigured\":%s,"
            "\"notificationsProjectId\":\"%s\",\"notificationsDeviceId\":\"%s\","
            "\"notificationsSent\":%lu,\"notificationsDropped\":%lu,\"notificationsQueued\":%lu,"
-           "\"notificationsLastHttp\":%d,\"notificationsRunning\":%s,\"notificationsBlocked\":%s}",
+           "\"notificationsLastHttp\":%d,\"notificationsRunning\":%s,\"notificationsBlocked\":%s,"
+           "\"iotEnabled\":%s,\"iotConfigured\":%s,\"iotDeviceId\":\"%s\","
+           "\"iotConnected\":%s,\"iotLive\":%s,\"iotPublished\":%lu,"
+           "\"iotDropped\":%lu,\"iotQueued\":%lu,\"iotCommands\":%lu,\"iotLastError\":%d}",
            static_cast<unsigned long>(metrics.totalBubbles),
            metrics.bubblesPerSecond, metrics.bubblesPerMinute, metrics.baseline,
            metrics.lastRaw, metrics.rateReliable ? "true" : "false",
@@ -84,6 +90,16 @@ inline std::string buildStatusJson(const BubbleMetrics &metrics,
            static_cast<unsigned long>(device.notificationDelivery.queued),
            device.notificationDelivery.lastHttp,
            device.notificationDelivery.running ? "true" : "false",
-           device.notificationDelivery.blocked ? "true" : "false");
+           device.notificationDelivery.blocked ? "true" : "false",
+           device.iotConfig.enabled ? "true" : "false",
+           device.iot.configured ? "true" : "false",
+           device.iotConfig.deviceId,
+           device.iot.connected ? "true" : "false",
+           device.iot.liveActive ? "true" : "false",
+           static_cast<unsigned long>(device.iot.published),
+           static_cast<unsigned long>(device.iot.dropped),
+           static_cast<unsigned long>(device.iot.queued),
+           static_cast<unsigned long>(device.iot.commandsHandled),
+           device.iot.lastError);
   return json;
 }

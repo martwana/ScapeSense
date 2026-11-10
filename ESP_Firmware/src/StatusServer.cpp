@@ -61,6 +61,7 @@ StatusServer::StatusServer()
       temperatureConfigQueue_(xQueueCreate(4, sizeof(TemperatureSettings))),
       bubbleTargetQueue_(xQueueCreate(4, sizeof(float))),
       notificationConfigQueue_(xQueueCreate(2, sizeof(RemoteNotificationConfig))),
+      iotConfigQueue_(xQueueCreate(2, sizeof(IotConfig))),
       latestTuningJson_(buildSensorTuningJson({})),
       latestDailyStatsJson_("{}") {}
 
@@ -202,6 +203,43 @@ void StatusServer::begin() {
       request->send(202, "application/json", "{\"accepted\":true}");
     }
   }).setFilter(stationRequest);
+  server_.on("/api/iot/config", HTTP_POST, [this](AsyncWebServerRequest *request) {
+    const String origin = request->hasHeader("Origin") ? request->getHeader("Origin")->value() : "";
+    if (origin != String("http://") + request->host()) {
+      request->send(403, "application/json", "{\"error\":\"Use the local dashboard to configure cloud reporting\"}");
+      return;
+    }
+    IotConfig settings;
+    const auto readText = [request](const char *name, auto &field, bool required) {
+      if (!request->hasParam(name, true)) return !required;
+      const String text = request->getParam(name, true)->value();
+      if (text.length() >= sizeof(field) || text.length() != std::strlen(text.c_str())) return false;
+      std::memcpy(field, text.c_str(), text.length() + 1);
+      return true;
+    };
+    const auto readInterval = [request](const char *name, uint32_t &field) {
+      if (!request->hasParam(name, true)) return true;
+      const String text = request->getParam(name, true)->value();
+      char *end = nullptr;
+      const unsigned long parsed = std::strtoul(text.c_str(), &end, 10);
+      if (!end || *end != '\0') return false;
+      field = static_cast<uint32_t>(parsed);
+      return true;
+    };
+    const String enabled = request->hasParam("enabled", true) ? request->getParam("enabled", true)->value() : "";
+    settings.enabled = enabled == "1";
+    if ((enabled != "0" && enabled != "1") || !readText("endpoint", settings.endpoint, true) ||
+        !readText("deviceId", settings.deviceId, true) ||
+        !readInterval("backgroundIntervalMs", settings.backgroundIntervalMs) ||
+        !readInterval("liveIntervalMs", settings.liveIntervalMs) ||
+        !validIotConfig(settings)) {
+      request->send(400, "application/json", "{\"error\":\"Invalid cloud settings\"}");
+    } else if (xQueueSend(iotConfigQueue_, &settings, 0) != pdTRUE) {
+      request->send(503, "application/json", "{\"error\":\"Configuration queue full\"}");
+    } else {
+      request->send(202, "application/json", "{\"accepted\":true}");
+    }
+  }).setFilter(stationRequest);
   server_.on("/api/bubbles/target", HTTP_POST, [this](AsyncWebServerRequest *request) {
     float target = 0;
     if (!readFloatParam(request, "targetBps", target) || !validBubbleTarget(target)) {
@@ -293,6 +331,10 @@ bool StatusServer::takeTemperatureConfigRequest(TemperatureSettings &settings) {
 
 bool StatusServer::takeNotificationConfigRequest(RemoteNotificationConfig &settings) {
   return xQueueReceive(notificationConfigQueue_, &settings, 0) == pdTRUE;
+}
+
+bool StatusServer::takeIotConfigRequest(IotConfig &settings) {
+  return xQueueReceive(iotConfigQueue_, &settings, 0) == pdTRUE;
 }
 
 bool StatusServer::takeBubbleTargetRequest(float &targetBps) {

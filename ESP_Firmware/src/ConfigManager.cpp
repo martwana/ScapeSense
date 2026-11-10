@@ -68,6 +68,7 @@ void ConfigManager::loadDefaults() {
   temperatureSettings_ = {};
   bubbleTargetBps_ = 0;
   notificationConfig_ = {};
+  iotConfig_ = {};
   if (!preferencesStarted_) {
     strlcpy(deviceName_.data(), ProjectConfig::kDeviceNameDefault,
             deviceName_.size());
@@ -158,6 +159,11 @@ void ConfigManager::loadDefaults() {
       preferences_.getBytes("notify_config", &notifications, sizeof(notifications)) == sizeof(notifications) && validNotificationConfig(notifications)) {
     notificationConfig_ = notifications;
   }
+  IotConfig iot;
+  if (preferences_.getBytesLength("iot_config") == sizeof(iot) &&
+      preferences_.getBytes("iot_config", &iot, sizeof(iot)) == sizeof(iot) && validIotConfig(iot)) {
+    iotConfig_ = iot;
+  }
   TemperatureSettings stored;
   if (preferences_.getBytesLength(kKeyTemperatureSettings) == sizeof(stored) &&
       preferences_.getBytes(kKeyTemperatureSettings, &stored, sizeof(stored)) == sizeof(stored) &&
@@ -192,6 +198,15 @@ bool ConfigManager::saveNotificationConfig(const RemoteNotificationConfig &setti
   if (!preferencesStarted_ || !validNotificationConfig(settings) ||
       preferences_.putBytes("notify_config", &settings, sizeof(settings)) != sizeof(settings)) return false;
   notificationConfig_ = settings;
+  return true;
+}
+
+IotConfig ConfigManager::iotConfig() const { return iotConfig_; }
+
+bool ConfigManager::saveIotConfig(const IotConfig &settings) {
+  if (!preferencesStarted_ || !validIotConfig(settings) ||
+      preferences_.putBytes("iot_config", &settings, sizeof(settings)) != sizeof(settings)) return false;
+  iotConfig_ = settings;
   return true;
 }
 

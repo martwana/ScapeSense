@@ -5,6 +5,7 @@
 #include "DailyStats.h"
 #include "DisplayManager.h"
 #include "DisplayWakeController.h"
+#include "IotClient.h"
 #include "LoadCellSensor.h"
 #include "NetworkManager.h"
 #include "NotificationReporter.h"
@@ -34,6 +35,7 @@ TemperatureSensor temperatureSensor;
 LoadCellSensor loadCellSensor;
 DailyStats dailyStats;
 NotificationReporter notificationReporter;
+IotClient iotClient;
 constexpr uint32_t kIpScreenMs = 10000;
 constexpr uint32_t kStatsPersistIntervalMs = 300000;
 constexpr uint32_t kValidEpoch = 1609459200;
@@ -243,6 +245,12 @@ void applyDeviceSettings(uint32_t now) {
     if (saved) notificationReporter.configure(notifications);
     statusServer.completeSettingsOperation("Notifications", saved);
   }
+  IotConfig iot;
+  while (statusServer.takeIotConfigRequest(iot)) {
+    const bool saved = config.saveIotConfig(iot);
+    if (saved) iotClient.configure(iot);
+    statusServer.completeSettingsOperation("Cloud reporting", saved);
+  }
   float targetBps;
   while (statusServer.takeBubbleTargetRequest(targetBps)) {
     statusServer.completeSettingsOperation("Bubble target", config.saveBubbleTarget(targetBps));
@@ -352,6 +360,9 @@ void setup() {
   if (!notificationReporter.begin(config.notificationConfig(), dailyStats.state())) {
     Serial.println("[WARN] Notification reporter unavailable; local monitoring continues");
   }
+  if (!iotClient.begin(config.iotConfig())) {
+    Serial.println("[WARN] AWS IoT client unavailable; local monitoring continues");
+  }
 }
 
 bool isBootButtonPressed() {
@@ -451,7 +462,10 @@ void loop() {
   loadCellSensor.update(now);
   finishLoadCellCalibration();
   applyBubbleEvents(timeValid, dayKey, epoch);
-  if (timeValid) notificationReporter.observe(dailyStats.state(), epoch, bubbleAcquisition.metrics().bubblesPerSecond);
+  if (timeValid) {
+    notificationReporter.observe(dailyStats.state(), epoch, bubbleAcquisition.metrics().bubblesPerSecond);
+    iotClient.observeFlow(dailyStats.state(), epoch, bubbleAcquisition.metrics().bubblesPerSecond);
+  }
 
   if (timeValid && now - lastStatsPersistMs >= kStatsPersistIntervalMs) {
     lastStatsPersistMs = now;
@@ -472,10 +486,30 @@ void loop() {
     device.bubbleTargetBps = config.bubbleTargetBps();
     device.notifications = config.notificationConfig();
     device.notificationDelivery = notificationReporter.status();
+    device.iotConfig = config.iotConfig();
+    device.iot = iotClient.status();
     device.loadCell = loadCellSensor.reading();
     device.emptyCylinderWeightG = config.emptyCylinderWeightG();
     device.co2CapacityG = config.co2CapacityG();
     statusServer.publish(bubbleAcquisition.metrics(), device);
+
+    const BubbleMetrics metrics = bubbleAcquisition.metrics();
+    IotTelemetry telemetry;
+    telemetry.epoch = epoch;
+    telemetry.uptimeSeconds = now / 1000;
+    telemetry.totalBubbles = metrics.totalBubbles;
+    telemetry.bps = metrics.bubblesPerSecond;
+    telemetry.bpm = metrics.bubblesPerMinute;
+    telemetry.temperatureC = temperatureSensor.reading().temperatureC;
+    telemetry.temperatureValid = temperatureSensor.reading().valid;
+    telemetry.weightG = loadCellSensor.reading().grams;
+    telemetry.weightReady = loadCellSensor.reading().ready;
+    telemetry.gasRemainingPercent = gasRemainingPercent(
+        loadCellSensor.reading().grams, config.emptyCylinderWeightG(),
+        config.co2CapacityG());
+    telemetry.flowActive = dailyStats.state().active;
+    telemetry.rssi = static_cast<int16_t>(WiFi.RSSI());
+    iotClient.observeTelemetry(telemetry);
   }
 
   if (display.isPoweredOn() && now - lastDisplayUpdate >= 250) {

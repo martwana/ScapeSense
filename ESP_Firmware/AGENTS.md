@@ -118,6 +118,31 @@ NVS cannot override the fixed ESP32-S3 pin mapping.
   update `firmware.bin` or the generated `littlefs.bin` filesystem image.
 - `/api/*` endpoints remain available for exact programmatic control and use the
   same request queues as the dashboard controls.
+
+## AWS IoT Reporting (development)
+
+- `IotClient` (`src/IotClient.cpp`) runs its own FreeRTOS task using ESP-IDF's
+  `esp_mqtt_client` over mutual TLS — no third-party MQTT library. Local
+  monitoring never waits on it.
+- Topics: `scapesense/{deviceId}/telemetry|events|commands|responses`;
+  `deviceId` is the IoT Thing name and MQTT client ID.
+- Telemetry publishes every `backgroundIntervalMs` (default 5 min), or
+  `liveIntervalMs` (default 2 s) while a `live` command window is active
+  (capped at 1 h). Flow start/stop events publish immediately at QoS 1 and
+  expire after 24 h. A retained `online`/`offline` LWT marks presence.
+- Device credentials for the dev proof live in LittleFS: drop the dev
+  certificate + private key into `data/iot/device.crt` and
+  `data/iot/device.key` before `pio run -t buildfs` + `uploadfs`. `data/` is
+  gitignored — never commit certs. The endpoint uses the built-in ESP-IDF CA
+  bundle (Amazon Root CA 1 covers `*-ats.iot.*.amazonaws.com`).
+- Configure via `POST /api/iot/config` (form fields `enabled=1`, `endpoint`,
+  `deviceId`, optional `backgroundIntervalMs`/`liveIntervalMs`), validated by
+  `validIotConfig` and persisted as the `iot_config` NVS blob in the
+  `BubbleCounter` namespace. Status surfaces as `iot*` fields in
+  `/api/status`.
+- Protocol helpers (config validation, telemetry JSON, command parsing,
+  topics) live in `include/IotProtocol.h` and are covered by
+  `test/test_iot_protocol`.
 - UI source lives in `ui/`; generated files in `data/` are build output.
 - SVG branding is imported from the sibling `../Logos/` folder and bundled as
   data URLs by esbuild. Keep that folder alongside `ESP_Firmware` when building.

@@ -54,6 +54,7 @@ public:
   bool takeTemperatureConfigRequest(TemperatureSettings &settings);
   bool takeBubbleTargetRequest(float &targetBps);
   bool takeNotificationConfigRequest(RemoteNotificationConfig &settings);
+  bool takeIotConfigRequest(IotConfig &settings);
   uint8_t maintenanceAction() const;
   void completeSettingsOperation(const char *operation, bool success);
   void publishTuning(const SensorTuning &tuning);
@@ -78,6 +79,7 @@ private:
   QueueHandle_t temperatureConfigQueue_;
   QueueHandle_t bubbleTargetQueue_;
   QueueHandle_t notificationConfigQueue_;
+  QueueHandle_t iotConfigQueue_;
   std::atomic<uint8_t> maintenanceAction_{0};
   void queueMaintenanceRequest(AsyncWebServerRequest *request, bool factory);
   std::string latestTuningJson_;

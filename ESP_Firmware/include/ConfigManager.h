@@ -3,6 +3,7 @@
 #include "DailyStats.h"
 #include "LoadCellReading.h"
 #include "OledType.h"
+#include "IotProtocol.h"
 #include "MonitoringSettings.h"
 #include "RemoteNotifications.h"
 #include "SensorTuning.h"
@@ -27,6 +28,8 @@ public:
   bool saveBubbleTarget(float targetBps);
   RemoteNotificationConfig notificationConfig() const;
   bool saveNotificationConfig(const RemoteNotificationConfig &settings);
+  IotConfig iotConfig() const;
+  bool saveIotConfig(const IotConfig &settings);
 
   const char *deviceName() const;
   void setDeviceName(const char *name);
@@ -124,4 +127,5 @@ private:
   TemperatureSettings temperatureSettings_{};
   float bubbleTargetBps_ = 0;
   RemoteNotificationConfig notificationConfig_{};
+  IotConfig iotConfig_{};
 };
