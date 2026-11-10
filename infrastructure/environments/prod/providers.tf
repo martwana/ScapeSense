@@ -11,12 +11,18 @@ provider "aws" {
 }
 
 # Google credentials come from Application Default Credentials
-# (`gcloud auth application-default login`). The project is created by
-# Terraform, so provider blocks do not pin a project.
+# (`gcloud auth application-default login` plus
+# `gcloud auth application-default set-quota-project <project>`). User ADC
+# credentials require a quota/billing project header on APIs like
+# firebasedatabase.googleapis.com, so the providers send x-goog-user-project.
 provider "google" {
-  region = var.firebase_region
+  region                = var.firebase_region
+  billing_project       = var.firebase_project_id
+  user_project_override = true
 }
 
 provider "google-beta" {
-  region = var.firebase_region
+  region                = var.firebase_region
+  billing_project       = var.firebase_project_id
+  user_project_override = true
 }

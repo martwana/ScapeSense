@@ -105,9 +105,8 @@ resource "aws_iot_provisioning_template" "scapesense" {
 
   template_body = jsonencode({
     Parameters = {
-      SerialNumber                            = { Type = "String" }
-      "AWS::IoT::Certificate::Id"             = { Type = "String" }
-      "AWS::IoT::Certificate::SigningRequest" = { Type = "String" }
+      SerialNumber                = { Type = "String" }
+      "AWS::IoT::Certificate::Id" = { Type = "String" }
     }
     Resources = {
       thing = {
@@ -129,9 +128,8 @@ resource "aws_iot_provisioning_template" "scapesense" {
       certificate = {
         Type = "AWS::IoT::Certificate"
         Properties = {
-          CertificateId             = { Ref = "AWS::IoT::Certificate::Id" }
-          CertificateSigningRequest = { Ref = "AWS::IoT::Certificate::SigningRequest" }
-          Status                    = "Active"
+          CertificateId = { Ref = "AWS::IoT::Certificate::Id" }
+          Status        = "Active"
         }
       }
       policy = {

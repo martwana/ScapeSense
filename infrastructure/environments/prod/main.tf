@@ -30,32 +30,32 @@ module "firebase" {
 
 module "iam" {
   source     = "../../modules/iam"
-  project_id = module.firebase.project_id
+  project_id = module.firebase.apis_ready
 }
 
 module "firestore" {
   source     = "../../modules/firestore"
-  project_id = module.firebase.project_id
+  project_id = module.firebase.apis_ready
   location   = var.firebase_region
   rules_file = "${path.module}/../../../Firebase/firestore.rules"
 }
 
 module "realtime_database" {
   source      = "../../modules/realtime-database"
-  project_id  = module.firebase.project_id
-  instance_id = "${var.firebase_project_id}-rtdb"
+  project_id  = module.firebase.apis_ready
+  instance_id = "${var.firebase_project_id}-default-rtdb"
   region      = var.rtdb_region
 }
 
 module "authentication" {
   source             = "../../modules/authentication"
-  project_id         = module.firebase.project_id
+  project_id         = module.firebase.apis_ready
   authorized_domains = local.authorized_domains
 }
 
 module "hosting" {
   source                = "../../modules/hosting"
-  project_id            = module.firebase.project_id
+  project_id            = module.firebase.apis_ready
   site_id               = var.hosting_site_id
   custom_domain         = local.app_domain
   custom_domain_enabled = var.custom_domain_enabled
@@ -95,7 +95,7 @@ module "iot_bridge" {
 
 module "monitoring" {
   source                 = "../../modules/monitoring"
-  project_id             = module.firebase.project_id
+  project_id             = module.firebase.apis_ready
   project_number         = module.firebase.project_number
   billing_account_id     = var.gcp_billing_account_id
   alert_emails           = var.alert_emails

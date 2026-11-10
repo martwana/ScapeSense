@@ -52,13 +52,8 @@ resource "aws_iot_policy" "device" {
         Resource = concat(
           [for s in ["telemetry", "events", "responses"] :
           "${local.iot_arn}:topic/scapesense/${local.thing}/${s}"],
-          ["${local.iot_arn}:topic/$aws/things/${local.thing}/shadow/get",
-            "${local.iot_arn}:topic/$aws/things/${local.thing}/shadow/update",
-            "${local.iot_arn}:topic/$aws/things/${local.thing}/shadow/delete",
-            "${local.iot_arn}:topic/$aws/things/${local.thing}/jobs/get",
-            "${local.iot_arn}:topic/$aws/things/${local.thing}/jobs/start-next",
-            "${local.iot_arn}:topic/$aws/things/${local.thing}/jobs/*/get",
-          "${local.iot_arn}:topic/$aws/things/${local.thing}/jobs/*/update"]
+          ["${local.iot_arn}:topic/$aws/things/${local.thing}/shadow/*",
+          "${local.iot_arn}:topic/$aws/things/${local.thing}/jobs/*"]
         )
       },
       {
@@ -66,22 +61,8 @@ resource "aws_iot_policy" "device" {
         Action = "iot:Subscribe"
         Resource = [
           "${local.iot_arn}:topicfilter/scapesense/${local.thing}/commands",
-          "${local.iot_arn}:topicfilter/$aws/things/${local.thing}/shadow/get/accepted",
-          "${local.iot_arn}:topicfilter/$aws/things/${local.thing}/shadow/get/rejected",
-          "${local.iot_arn}:topicfilter/$aws/things/${local.thing}/shadow/update/accepted",
-          "${local.iot_arn}:topicfilter/$aws/things/${local.thing}/shadow/update/rejected",
-          "${local.iot_arn}:topicfilter/$aws/things/${local.thing}/shadow/update/delta",
-          "${local.iot_arn}:topicfilter/$aws/things/${local.thing}/shadow/update/documents",
-          "${local.iot_arn}:topicfilter/$aws/things/${local.thing}/shadow/delete/accepted",
-          "${local.iot_arn}:topicfilter/$aws/things/${local.thing}/shadow/delete/rejected",
-          "${local.iot_arn}:topicfilter/$aws/things/${local.thing}/jobs/notify",
-          "${local.iot_arn}:topicfilter/$aws/things/${local.thing}/jobs/notify-next",
-          "${local.iot_arn}:topicfilter/$aws/things/${local.thing}/jobs/*/get/accepted",
-          "${local.iot_arn}:topicfilter/$aws/things/${local.thing}/jobs/*/get/rejected",
-          "${local.iot_arn}:topicfilter/$aws/things/${local.thing}/jobs/*/update/accepted",
-          "${local.iot_arn}:topicfilter/$aws/things/${local.thing}/jobs/*/update/rejected",
-          "${local.iot_arn}:topicfilter/$aws/things/${local.thing}/jobs/start-next/accepted",
-          "${local.iot_arn}:topicfilter/$aws/things/${local.thing}/jobs/start-next/rejected",
+          "${local.iot_arn}:topicfilter/$aws/things/${local.thing}/shadow/*",
+          "${local.iot_arn}:topicfilter/$aws/things/${local.thing}/jobs/*",
         ]
       },
       {
@@ -89,22 +70,8 @@ resource "aws_iot_policy" "device" {
         Action = "iot:Receive"
         Resource = [
           "${local.iot_arn}:topic/scapesense/${local.thing}/commands",
-          "${local.iot_arn}:topic/$aws/things/${local.thing}/shadow/get/accepted",
-          "${local.iot_arn}:topic/$aws/things/${local.thing}/shadow/get/rejected",
-          "${local.iot_arn}:topic/$aws/things/${local.thing}/shadow/update/accepted",
-          "${local.iot_arn}:topic/$aws/things/${local.thing}/shadow/update/rejected",
-          "${local.iot_arn}:topic/$aws/things/${local.thing}/shadow/update/delta",
-          "${local.iot_arn}:topic/$aws/things/${local.thing}/shadow/update/documents",
-          "${local.iot_arn}:topic/$aws/things/${local.thing}/shadow/delete/accepted",
-          "${local.iot_arn}:topic/$aws/things/${local.thing}/shadow/delete/rejected",
-          "${local.iot_arn}:topic/$aws/things/${local.thing}/jobs/notify",
-          "${local.iot_arn}:topic/$aws/things/${local.thing}/jobs/notify-next",
-          "${local.iot_arn}:topic/$aws/things/${local.thing}/jobs/*/get/accepted",
-          "${local.iot_arn}:topic/$aws/things/${local.thing}/jobs/*/get/rejected",
-          "${local.iot_arn}:topic/$aws/things/${local.thing}/jobs/*/update/accepted",
-          "${local.iot_arn}:topic/$aws/things/${local.thing}/jobs/*/update/rejected",
-          "${local.iot_arn}:topic/$aws/things/${local.thing}/jobs/start-next/accepted",
-          "${local.iot_arn}:topic/$aws/things/${local.thing}/jobs/start-next/rejected",
+          "${local.iot_arn}:topic/$aws/things/${local.thing}/shadow/*",
+          "${local.iot_arn}:topic/$aws/things/${local.thing}/jobs/*",
         ]
       },
     ]

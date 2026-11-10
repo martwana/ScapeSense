@@ -26,6 +26,7 @@ locals {
     "serviceusage.googleapis.com",
     "cloudresourcemanager.googleapis.com",
     "cloudbilling.googleapis.com",
+    "billingbudgets.googleapis.com",
     "iam.googleapis.com",
     "firebase.googleapis.com",
     "firebasehosting.googleapis.com",
